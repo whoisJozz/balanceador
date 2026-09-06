@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  haproxy:
+    image: haproxy:2.9-alpine
+    container_name: lb_haproxy
+    ports:
+      - "80:80"       # Tráfico HTTP balanceado
+      - "3306:3306"   # Tráfico MySQL balanceado
+      - "8404:8404"   # Dashboard de estadísticas
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - web1
+      - web2
+      - mysql-primary
+      - mysql-replica
+    networks:
+      lb_network:
+        ipv4_address: 192.168.100.10
+    restart: unless-stopped
+
+  web1:
+    image: nginx:alpine
+    container_name: web1
+    volumes:
+      - ./web1/html:/usr/share/nginx/html:ro
+    networks:
+      lb_network:
+        ipv4_address: 192.168.100.11
+    restart: unless-stopped
+
+  web2:
+    image: nginx:alpine
+    container_name: web2
+    volumes:
+      - ./web2/html:/usr/share/nginx/html:ro
+    networks:
+      lb_network:
+        ipv4_address: 192.168.100.12
+    restart: unless-stopped
+
+  mysql-primary:
+    image: mysql:8.0
+    container_name: mysql_primary
+    command:
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --binlog-format=ROW
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: appdb
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: apppass
+    volumes:
+      - mysql_primary_data:/var/lib/mysql
+    networks:
+      lb_network:
+        ipv4_address: 192.168.100.13
+    restart: unless-stopped
+
+  mysql-replica:
+    image: mysql:8.0
+    container_name: mysql_replica
+    command:
+      - --server-id=2
+      - --log-bin=mysql-bin
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --binlog-format=ROW
+      
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+
+    volumes:
+      - mysql_replica_data:/var/lib/mysql
+    networks:
+      lb_network:
+        ipv4_address: 192.168.100.14
+    restart: unless-stopped
+
+networks:
+  lb_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 192.168.100.0/24
+          gateway: 192.168.100.1
+
+volumes:
+  mysql_primary_data:
+  mysql_replica_data:

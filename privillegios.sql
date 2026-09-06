@@ -1,0 +1,14 @@
+-- 1. Crear las cuentas de usuario
+CREATE USER IF NOT EXISTS 'admin_db'@'%' IDENTIFIED WITH mysql_native_password BY 'adminpwd123';
+CREATE USER IF NOT EXISTS 'gerente_db'@'%' IDENTIFIED WITH mysql_native_password BY 'gerentepwd123';
+CREATE USER IF NOT EXISTS 'user_db'@'%' IDENTIFIED WITH mysql_native_password BY 'userpwd123';
+
+GRANT ALL PRIVILEGES ON ecommerce_db.* TO 'admin_db'@'%';
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON ecommerce_db.* TO 'gerente_db'@'%';
+
+GRANT SELECT ON ecommerce_db.* TO 'user_db'@'%';
+
+FLUSH PRIVILEGES;
+
+
